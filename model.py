@@ -24,7 +24,7 @@ class Head(nn.Module):
         # Compute attention scores ("affinities")
         weights = q @ k.transpose(-2,-1) * channel**-0.5
         weights = weights.masked_fill(self.tril[:block, :block] == 0, float('-inf'))
-        weights = F.softmax(weights, dim=-1) # (B, T, T)
+        weights = F.softmax(weights, dim=-1)
         weights = self.dropout(weights)
 
         # Perform the weighted aggregation of the values
