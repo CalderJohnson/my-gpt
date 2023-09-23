@@ -1,14 +1,19 @@
-import tensorflow as tf
+import torch
 import typing as tp
 
-# Hyperparameters
+# hyperparameters
 settings = {
-    "batch_size": 32,      # Number of independent sequences to process in parallel
-    "block_size": 8,       # Maximum context length for predictions
-    "seed": 1336,          # Seed for RNG
-    "learning_rate": 1e-3, # The learning rate
-    "epochs": 100,         # Number of epochs
+    "batch_size": 16,      # How many independent sequences are processed in parallel
+    "block_size": 256,     # Maximum context length for predictions
+    "epochs": 5000,        # Number of training epochs
+    "learning_rate": 1e-3, # Learning rate
+    "device": 'cuda' if torch.cuda.is_available() else 'cpu', # Device
+    "n_embd": 64,          # How many tokens to generate prediction weights for
+    "n_head": 4,           # Number of heads for multi headed attention
+    "n_layer": 4,          # Number of decoder blocks
+    "dropout": 0.1,        # Dropout ratio to mitigate overfitting
 }
+
 
 class Tokenizer:
     """Tokenization methods for a given vocabulary."""
@@ -24,16 +29,9 @@ class Tokenizer:
 
 
 def get_batch(data):
-    """Generate a batch of data, inputs and targets"""
-    indices = tf.random.uniform(
-        shape=[settings["batch_size"]],
-        minval=0,
-        maxval=(len(data) - settings["block_size"]),
-        dtype=tf.int32,
-        seed=settings["seed"],
-    )
-
-    inputs = tf.stack([data[i:i + settings["block_size"]] for i in indices])
-    targets = tf.stack([data[i + 1:i + settings["block_size"] + 1] for i in indices])
-
-    return inputs, targets
+    """Generate a batch"""
+    indices = torch.randint(len(data) - settings["block_size"], (settings["batch_size"],))
+    src = torch.stack([data[i:i+settings["block_size"]] for i in indices])
+    tgt = torch.stack([data[i+1:i+settings["block_size"]+1] for i in indices])
+    src, tgt = src.to(settings["device"]), tgt.to(settings["device"])
+    return src, tgt

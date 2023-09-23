@@ -1,31 +1,46 @@
-import tensorflow as tf
-import typing as tp
+import torch
+from model import LanguageModel
+from utils import settings, get_batch, Tokenizer
 
-from utils import Tokenizer, get_batch, settings
-from model import BigramLanguageModel
+torch.manual_seed(2048)
 
-# Retrieve and tokenize data
-txt_data = open("data.txt").read()
-vocab = sorted(list(set(txt_data)))
+with open('./data.txt', 'r', encoding='utf-8') as f:
+    text = f.read()
+
+# Prepare data and tokenizer
+vocab = sorted(list(set(text)))
+settings["vocab_size"] = len(vocab)
 tokenizer = Tokenizer(vocab)
-data = tf.constant(tokenizer.encode(txt_data))
 
-# 90/10 split for train/valid data
-n = int(0.9*len(data))
-train_data = data[:n]
-valid_data = data[n:]
+data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
+partition = int(0.9*len(data))
+train_data = data[:partition]
+valid_data = data[partition:]
 
-# Initialize the model
-model = BigramLanguageModel(len(vocab))
-optimizer = tf.keras.optimizers.AdamW(learning_rate=1e-3)
+# Initialize model and optimizer
+model = LanguageModel()
+gpt = model.to(settings["device"])
+optimizer = torch.optim.AdamW(model.parameters(), lr=settings["learning_rate"])
 
 # Train the model
-for step in range(settings["epochs"]):
-    # Sample a batch of data
-    with tf.GradientTape() as tape:
-        inputs, targets = get_batch(train_data)
-        logits, loss = model(inputs, targets)
+average_loss = 0
+for i in range(settings["epochs"]):
 
-    # Calculate gradients and update weights
-    gradients = tape.gradient(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+    # Evaluate loss every 100 steps
+    if i % 100 == 0 or i == settings["epochs"] - 1:
+        average_loss /= 100
+        print(f"Epoch {i}: loss={average_loss}")
+        average_loss = 0
+
+    # Get a batch of data
+    inputs, targets = get_batch(train_data)
+
+    # Train model based on loss
+    logits, loss = model(inputs, targets)
+    average_loss += loss.item()
+    optimizer.zero_grad(set_to_none=True)
+    loss.backward()
+    optimizer.step()
+
+# Generate
+print("".join(tokenizer.decode(gpt.generate(n_tokens=1000)[0].tolist())))
