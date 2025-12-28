@@ -1,2 +1,4 @@
 __pycache__
 data.txt
+.vscode
+gpt_model.pt

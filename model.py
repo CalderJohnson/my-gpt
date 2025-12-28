@@ -15,7 +15,7 @@ class Head(nn.Module):
         self.dropout = nn.Dropout(settings["dropout"])
 
     def forward(self, inputs):
-        batch, block, channel = inputs.shape
+        _, block, channel = inputs.shape
         # Key, query, and value vectors
         k = self.key(inputs)
         q = self.query(inputs)

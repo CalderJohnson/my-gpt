@@ -44,3 +44,6 @@ for i in range(settings["epochs"]):
 
 # Generate
 print("".join(tokenizer.decode(gpt.generate(n_tokens=1000)[0].tolist())))
+
+# Save the model
+torch.save(gpt.state_dict(), "./gpt_model.pt")
